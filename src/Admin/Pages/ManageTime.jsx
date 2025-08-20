@@ -1,21 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Search,
-  Plus,
-  Edit,
-  Trash2,
-  Filter,
-  ChevronDown,
-  Calendar,
-  Clock,
-  MapPin,
-  Users,
-  Route,
-  CheckCircle,
-  XCircle,
-  Bell,
-  Leaf
-} from "lucide-react";
 
 function ManageTime() {
   // State for timetable data
@@ -94,7 +77,7 @@ function ManageTime() {
       
       if (response.ok) {
         const data = await response.json();
-        setTimetables([...timetables, data.timeTable]);
+        setTimetables(prev => [...prev, data.timeTable]);
         setNewTimetable({
           collectorID: '',
           collectionDay: '',
@@ -127,9 +110,11 @@ function ManageTime() {
       
       if (response.ok) {
         // Update the local state
-        setTimetables(timetables.map(timetable => 
-          timetable._id === id ? { ...timetable, isActive: !currentStatus } : timetable
-        ));
+        setTimetables(prev =>
+          prev.map(timetable =>
+            timetable._id === id ? { ...timetable, isActive: !currentStatus } : timetable
+          )
+        );
       } else {
         setError('Failed to update timetable');
       }
@@ -141,12 +126,12 @@ function ManageTime() {
 
   // Filter timetables based on search query and status filter
   const filteredTimetables = timetables.filter(timetable => {
-    const matchesSearch = 
-      timetable.timeTableID.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (timetable.collectorID && timetable.collectorID.fullName && 
+    const matchesSearch =
+      timetable.timeTableID?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (timetable.collectorID && timetable.collectorID.fullName &&
        timetable.collectorID.fullName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      timetable.collectionLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (timetable.routeName && timetable.routeName.routeName && 
+      timetable.collectionLocation?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (timetable.routeName && timetable.routeName.routeName &&
        timetable.routeName.routeName.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesStatus = statusFilter === 'all' || 
@@ -174,33 +159,8 @@ function ManageTime() {
     <div className="min-h-screen bg-gray-50 text-gray-900">
       {/* Top bar */}
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 font-semibold">
-              <Leaf className="h-5 w-5 text-green-600" />
-              <span>Waste Management</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="hidden md:block relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
-                aria-label="Search"
-                placeholder="Search requests, zones, crews..."
-                className="w-72 rounded-xl border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm outline-none ring-0 placeholder:text-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-100"
-              />
-            </div>
-            <button className="relative rounded-xl p-2 hover:bg-gray-100" aria-label="Notifications">
-              <Bell className="h-5 w-5" />
-              <span className="absolute right-1 top-1 inline-flex h-2 w-2 rounded-full bg-red-500" />
-            </button>
-            <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-1.5">
-              <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-green-600 to-emerald-400" />
-              <span className="text-sm hidden sm:inline">Admin</span>
-              <ChevronDown className="h-4 w-4 text-gray-500" />
-            </div>
-          </div>
+        <div className="mx-auto flex max-w-7xl items-center px-4 py-3 md:px-6">
+          <div className="font-semibold">Waste Management</div>
         </div>
       </header>
 
@@ -214,67 +174,50 @@ function ManageTime() {
         {/* Stats cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-medium text-gray-600">Total Schedules</h3>
-              <Calendar className="h-5 w-5 text-green-500" />
-            </div>
+            <h3 className="text-sm font-medium text-gray-600">Total Schedules</h3>
             <p className="text-2xl font-bold mt-2">{timetables.length}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-medium text-gray-600">Active Schedules</h3>
-              <CheckCircle className="h-5 w-5 text-green-500" />
-            </div>
+            <h3 className="text-sm font-medium text-gray-600">Active Schedules</h3>
             <p className="text-2xl font-bold mt-2">{timetables.filter(t => t.isActive).length}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-medium text-gray-600">Inactive Schedules</h3>
-              <XCircle className="h-5 w-5 text-red-500" />
-            </div>
+            <h3 className="text-sm font-medium text-gray-600">Inactive Schedules</h3>
             <p className="text-2xl font-bold mt-2">{timetables.filter(t => !t.isActive).length}</p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-medium text-gray-600">Routes</h3>
-              <Route className="h-5 w-5 text-purple-500" />
-            </div>
+            <h3 className="text-sm font-medium text-gray-600">Routes</h3>
             <p className="text-2xl font-bold mt-2">{routes.length}</p>
           </div>
         </div>
 
         {/* Actions bar */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div className="relative w-full sm:w-auto">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <div className="w-full sm:w-auto">
             <input
               placeholder="Search timetables..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-64 rounded-xl border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm outline-none ring-0 placeholder:text-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-100"
+              className="w-full sm:w-64 rounded-xl border border-gray-200 bg-white py-2 px-3 text-sm outline-none ring-0 placeholder:text-gray-400 focus:border-green-500 focus:ring-2 focus:ring-green-100"
             />
           </div>
-          
+
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="relative">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm hover:bg-gray-50 pr-8"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-              <ChevronDown className="h-4 w-4 text-gray-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-            
-            <button 
-              onClick={() => setShowAddTimetable(true)}
-              className="flex items-center gap-2 rounded-xl bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700 flex-1 sm:flex-none justify-center"
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm hover:bg-gray-50"
             >
-              <Plus className="h-4 w-4" />
-              <span>New Schedule</span>
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+
+            <button
+              onClick={() => setShowAddTimetable(true)}
+              className="rounded-xl bg-green-600 px-3 py-2 text-sm text-white hover:bg-green-700 flex-1 sm:flex-none"
+            >
+              New Schedule
             </button>
           </div>
         </div>
@@ -312,20 +255,11 @@ function ManageTime() {
                       <p className="text-gray-900">{timetable.collectorID?.fullName || 'N/A'}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-900">{timetable.collectionDay}</span>
-                      </div>
-                      <div className="flex items-center gap-1 mt-1">
-                        <Clock className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-500">{timetable.collectionTime}</span>
-                      </div>
+                      <p className="text-gray-900">{timetable.collectionDay}</p>
+                      <p className="mt-1 text-sm text-gray-500">{timetable.collectionTime}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-900">{timetable.collectionLocation}</span>
-                      </div>
+                      <p className="text-gray-900">{timetable.collectionLocation}</p>
                     </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -333,10 +267,7 @@ function ManageTime() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-900">{timetable.crewMembers?.length || 0}</span>
-                      </div>
+                      <p className="text-gray-900">{timetable.crewMembers?.length || 0}</p>
                     </td>
                     <td className="px-4 py-3">
                       <button 
@@ -348,12 +279,8 @@ function ManageTime() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <button className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700">
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button className="p-1.5 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <button className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700">Edit</button>
+                        <button className="p-1.5 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600">Delete</button>
                       </div>
                     </td>
                   </tr>
@@ -365,15 +292,13 @@ function ManageTime() {
 
         {filteredTimetables.length === 0 && (
           <div className="text-center py-12">
-            <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
             <h3 className="text-lg font-medium text-gray-900">No schedules found</h3>
             <p className="text-gray-500 mb-4">Get started by creating a new collection schedule.</p>
-            <button 
+            <button
               onClick={() => setShowAddTimetable(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+              className="rounded-xl bg-green-600 px-4 py-2 text-white hover:bg-green-700"
             >
-              <Plus className="h-4 w-4" />
-              <span>New Schedule</span>
+              New Schedule
             </button>
           </div>
         )}
