@@ -4,7 +4,6 @@ import {
   Plus,
   Edit,
   Trash2,
-  Filter,
   ChevronDown,
   Calendar,
   Clock,
@@ -94,7 +93,7 @@ function ManageTime() {
       
       if (response.ok) {
         const data = await response.json();
-        setTimetables([...timetables, data.timeTable]);
+        setTimetables(prev => [...prev, data.timeTable]);
         setNewTimetable({
           collectorID: '',
           collectionDay: '',
@@ -127,9 +126,11 @@ function ManageTime() {
       
       if (response.ok) {
         // Update the local state
-        setTimetables(timetables.map(timetable => 
-          timetable._id === id ? { ...timetable, isActive: !currentStatus } : timetable
-        ));
+        setTimetables(prev =>
+          prev.map(timetable =>
+            timetable._id === id ? { ...timetable, isActive: !currentStatus } : timetable
+          )
+        );
       } else {
         setError('Failed to update timetable');
       }
@@ -141,12 +142,12 @@ function ManageTime() {
 
   // Filter timetables based on search query and status filter
   const filteredTimetables = timetables.filter(timetable => {
-    const matchesSearch = 
-      timetable.timeTableID.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (timetable.collectorID && timetable.collectorID.fullName && 
+    const matchesSearch =
+      timetable.timeTableID?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (timetable.collectorID && timetable.collectorID.fullName &&
        timetable.collectorID.fullName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      timetable.collectionLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (timetable.routeName && timetable.routeName.routeName && 
+      timetable.collectionLocation?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (timetable.routeName && timetable.routeName.routeName &&
        timetable.routeName.routeName.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesStatus = statusFilter === 'all' || 
