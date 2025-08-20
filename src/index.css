@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+
+@font-face {
+    font-family: 'Outfit-Regular';
+    src: url(/src/assets/Fonts/Outfit-Regular.ttf) format('truetype');
+}
+@font-face {
+    font-family: 'Outfit-Bold';
+    src: url(/src/assets/Fonts/Outfit-Bold.ttf) format('truetype');
+}
+@font-face {
+    font-family: 'Outfit-Medium';
+    src: url(/src/assets/Fonts/Outfit-Medium.ttf) format('truetype');
+}
+@font-face {
+    font-family: 'Outfit-SemiBold';
+    src: url(/src/assets/Fonts/Outfit-SemiBold.ttf) format('truetype');
+}
+@font-face {
+    font-family: 'Outfit-Light';
+    src: url(/src/assets/Fonts/Outfit-Light.ttf) format('truetype');
+}
+@font-face {
+    font-family: 'Outfit-ExtraLight';
+    src: url(/src/assets/Fonts/Outfit-ExtraLight.ttf) format('truetype');
+}
+@font-face {
+    font-family: 'Outfit-Black';
+    src: url(/src/assets/Fonts/Outfit-Black.ttf) format('truetype');
+}
+
+
+@theme{
+    --font-outfit: 'Outfit-Regular', sans-serif;
+    --font-outfit-bold: 'Outfit-Bold', sans-serif;
+    --font-outfit-medium: 'Outfit-Medium', sans-serif;
+    --font-outfit-semibold: 'Outfit-SemiBold', sans-serif;
+    --font-outfit-light: 'Outfit-Light', sans-serif;
+    --font-outfit-extralight: 'Outfit-ExtraLight', sans-serif;
+    --font-outfit-black: 'Outfit-Black', sans-serif;
+}
