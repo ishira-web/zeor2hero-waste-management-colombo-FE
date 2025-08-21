@@ -1,24 +1,102 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { User, Clock, Users, MapPin, Calendar, CheckCircle, XCircle, AlertCircle, Pause } from 'lucide-react'
 
 function CollectorProfile() {
-  const [requests, setRequests] = useState([
-    { id: 1, dwellerName: 'John Smith', address: '123 Oak Street', status: 'Pending', time: '09:30 AM', type: 'Regular Collection' },
-    { id: 2, dwellerName: 'Maria Garcia', address: '456 Pine Avenue', status: 'In Progress', time: '10:15 AM', type: 'Bulk Waste' },
-    { id: 3, dwellerName: 'David Wilson', address: '789 Elm Road', status: 'Completed', time: '11:00 AM', type: 'Recyclables' },
-    { id: 4, dwellerName: 'Sarah Johnson', address: '321 Maple Drive', status: 'Cancelled', time: '11:45 AM', type: 'Special Request' },
-    { id: 5, dwellerName: 'Ahmed Hassan', address: '654 Cedar Lane', status: 'Pending', time: '01:30 PM', type: 'Hazardous Waste' },
-  ])
+  const [collectorInfo, setCollectorInfo] = useState(null)
+  const [requests, setRequests] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  const collectorInfo = {
-    name: 'Michael Anderson',
-    id: 'COL-2024-001',
-    phone: '+1 (555) 123-4567',
-    email: 'michael.anderson@wastecorp.com',
-    experience: '5 years',
-    rating: 4.8
-  }
+  useEffect(() => {
+    const fetchCollectorData = async () => {
+      try {
+        console.log('Starting to fetch collector data...')
+        
+        // Get user data from localStorage
+        const userDataString = localStorage.getItem('userData')
+        console.log('User data from localStorage:', userDataString)
+        
+        if (!userDataString) {
+          throw new Error('User data not found in localStorage')
+        }
 
+        const userData = JSON.parse(userDataString)
+        console.log('Parsed user data:', userData)
+        
+        if (!userData._id) {
+          throw new Error('User ID not found in user data')
+        }
+
+        // Get token from localStorage
+        const token = localStorage.getItem('oken') || userData.token;
+        console.log('Token found:', token ? 'Yes' : 'No')
+        
+        if (!token) {
+          throw new Error('Authentication token not found')
+        }
+
+        console.log('Making API request to:', `http://localhost:3000/api/collector/getcollector/${userData._id}`)
+        
+        // Fetch collector data using the ID from localStorage
+        const response = await fetch(`http://localhost:3000/api/collector/getcollector/${userData._id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+        
+        console.log('API response status:', response.status)
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error('Authentication failed. Please log in again.')
+          }
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        console.log('API response data:', data)
+        
+        // Extract the collector data from the response
+        if (data.collector) {
+          setCollectorInfo(data.collector)
+        } else {
+          throw new Error('Collector data not found in API response')
+        }
+        
+        // In a real app, you would also fetch requests, crew, schedule, and route data
+        // For now, we'll use the mock data for these
+        setRequests([
+          { id: 1, dwellerName: 'John Smith', address: '123 Oak Street', status: 'Pending', time: '09:30 AM', type: 'Regular Collection' },
+          { id: 2, dwellerName: 'Maria Garcia', address: '456 Pine Avenue', status: 'In Progress', time: '10:15 AM', type: 'Bulk Waste' },
+          { id: 3, dwellerName: 'David Wilson', address: '789 Elm Road', status: 'Completed', time: '11:00 AM', type: 'Recyclables' },
+          { id: 4, dwellerName: 'Sarah Johnson', address: '321 Maple Drive', status: 'Cancelled', time: '11:45 AM', type: 'Special Request' },
+          { id: 5, dwellerName: 'Ahmed Hassan', address: '654 Cedar Lane', status: 'Pending', time: '01:30 PM', type: 'Hazardous Waste' },
+        ])
+        
+        setLoading(false)
+      } catch (err) {
+        console.error('Error in fetchCollectorData:', err)
+        setError(err.message)
+        setLoading(false)
+        
+        // If authentication failed, redirect to login
+        if (err.message.includes('Authentication failed')) {
+          // Clear invalid token/data
+          localStorage.removeItem('oken')
+          localStorage.removeItem('userData')
+          // Redirect to login after a short delay
+          setTimeout(() => {
+            window.location.href = '/login'
+          }, 2000)
+        }
+      }
+    }
+
+    fetchCollectorData()
+  }, [])
+
+  // Mock data for crew, schedule, and route (in a real app, these would come from APIs)
   const crew = [
     { name: 'Robert Chen', role: 'Assistant Collector', phone: '+1 (555) 234-5678' },
     { name: 'Carlos Rodriguez', role: 'Driver', phone: '+1 (555) 345-6789' }
@@ -67,10 +145,73 @@ function CollectorProfile() {
     }
   }
 
+  // Add a temporary debug component
+  const DebugInfo = () => {
+    const userDataString = localStorage.getItem('userData')
+    const userData = userDataString ? JSON.parse(userDataString) : null
+    const token = localStorage.getItem('oken') || (userData ? userData.token : null)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading collector profile...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
+          <h2 className="mt-4 text-xl font-semibold text-gray-900">Error Loading Profile</h2>
+          <p className="mt-2 text-gray-600">{error}</p>
+          {error.includes('Authentication failed') ? (
+            <p className="mt-2 text-sm text-gray-500">Redirecting to login page...</p>
+          ) : (
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Try Again
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // If collectorInfo is still null, show an error
+  if (!collectorInfo) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
+          <h2 className="mt-4 text-xl font-semibold text-gray-900">No Collector Data</h2>
+          <p className="mt-2 text-gray-600">Unable to load collector information.</p>
+          <DebugInfo />
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-6 font-outfit">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Collector Dashboard</h1>
+        
+        {/* Debug info - remove this in production */}
+        <DebugInfo />
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Collector Profile */}
@@ -80,17 +221,35 @@ function CollectorProfile() {
               <h2 className="text-xl font-semibold text-gray-900">Profile</h2>
             </div>
             <div className="text-center mb-4">
-              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <User className="w-10 h-10 text-blue-600" />
+              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 overflow-hidden">
+                {collectorInfo.profilePicture ? (
+                  <img 
+                    src={collectorInfo.profilePicture} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="w-10 h-10 text-blue-600" />
+                )}
               </div>
-              <h3 className="text-lg font-medium text-gray-900">{collectorInfo.name}</h3>
-              <p className="text-sm text-gray-500">ID: {collectorInfo.id}</p>
+              <h3 className="text-lg font-medium text-gray-900">{collectorInfo.fullName}</h3>
+              <p className="text-sm text-gray-500">ID: {collectorInfo.collectId}</p>
             </div>
             <div className="space-y-2 text-sm">
-              <p><span className="font-medium">Phone:</span> {collectorInfo.phone}</p>
+              <p><span className="font-medium">Phone:</span> {collectorInfo.phoneNumber}</p>
               <p><span className="font-medium">Email:</span> {collectorInfo.email}</p>
-              <p><span className="font-medium">Experience:</span> {collectorInfo.experience}</p>
-              <p><span className="font-medium">Rating:</span> ⭐ {collectorInfo.rating}/5.0</p>
+              <p><span className="font-medium">NIC:</span> {collectorInfo.nicNumber}</p>
+              <p><span className="font-medium">Address:</span> {collectorInfo.addressLine1}, {collectorInfo.houseNumber}, {collectorInfo.city}</p>
+              <p><span className="font-medium">Status:</span> 
+                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${collectorInfo.isActive === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {collectorInfo.isActive}
+                </span>
+              </p>
+              <p><span className="font-medium">Online:</span> 
+                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${collectorInfo.isOnline === 'online' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                  {collectorInfo.isOnline}
+                </span>
+              </p>
             </div>
           </div>
 
@@ -240,7 +399,7 @@ function CollectorProfile() {
                         <option value="Pending">Pending</option>
                         <option value="In Progress">In Progress</option>
                         <option value="Completed">Completed</option>
-                        <option value="Cancelled">Cancelled</option>
+                        <option value='Cancelled'>Cancelled</option>
                       </select>
                     </td>
                   </tr>
