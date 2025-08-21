@@ -65,36 +65,66 @@ function ManageTime() {
       
       // Fetch collectors
       const collectorResponse = await fetch('http://localhost:3000/api/collector/getcollectors');
+      if (!collectorResponse.ok) {
+        throw new Error(`HTTP error! status: ${collectorResponse.status}`);
+      }
       const collectorData = await collectorResponse.json();
       if (collectorData.collectors) {
         setCollectors(collectorData.collectors);
       } else {
-        toast.error('Failed to fetch collectors');
+        toast.error('Failed to fetch collectors - invalid response format');
       }
       
       // Fetch routes
       const routeResponse = await fetch('http://localhost:3000/api/route/getAllRoutes');
+      if (!routeResponse.ok) {
+        throw new Error(`HTTP error! status: ${routeResponse.status}`);
+      }
       const routeData = await routeResponse.json();
       if (routeData.routes) {
         setRoutes(routeData.routes);
       } else {
-        toast.error('Failed to fetch routes');
+        toast.error('Failed to fetch routes - invalid response format');
       }
       
-      // Fetch timetables
-      const timetableResponse = await fetch('http://localhost:3000/api/timetable/getall');
-      const timetableData = await timetableResponse.json();
+      // Fetch timetables - try different endpoints
+      let timetableResponse;
+      let timetableData;
+      
+      // Try the correct endpoint first
+      try {
+        timetableResponse = await fetch('http://localhost:3000/api/timetable/all');
+        if (!timetableResponse.ok) {
+          throw new Error(`HTTP error! status: ${timetableResponse.status}`);
+        }
+        timetableData = await timetableResponse.json();
+      } catch (err) {
+        // Fallback to the other endpoint if the first one fails
+        console.log('First timetable endpoint failed, trying fallback...');
+        timetableResponse = await fetch('http://localhost:3000/api/timetable/getall');
+        if (!timetableResponse.ok) {
+          throw new Error(`HTTP error! status: ${timetableResponse.status}`);
+        }
+        timetableData = await timetableResponse.json();
+      }
+      
       if (timetableData.timeTables) {
         setTimetables(timetableData.timeTables);
       } else {
-        toast.error('Failed to fetch timetables');
+        toast.error('Failed to fetch timetables - invalid response format');
       }
       
       setLoading(false);
     } catch (err) {
-      toast.error('Failed to fetch data. Please check if the server is running.');
-      setLoading(false);
       console.error('Error fetching data:', err);
+      if (err.message.includes('JSON')) {
+        toast.error('Server returned invalid data. Please check if the API endpoints are correct.');
+      } else if (err.message.includes('404')) {
+        toast.error('API endpoint not found. Please check the server routes.');
+      } else {
+        toast.error('Failed to fetch data. Please check if the server is running.');
+      }
+      setLoading(false);
     }
   };
 
@@ -109,6 +139,10 @@ function ManageTime() {
         },
         body: JSON.stringify(newTimetable),
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
       const data = await response.json();
       
@@ -125,12 +159,18 @@ function ManageTime() {
         });
         setShowAddTimetable(false);
         toast.success('Timetable created successfully!');
+        // Refresh the data
+        fetchData();
       } else {
         toast.error(data.message || 'Failed to create timetable');
       }
     } catch (err) {
-      toast.error('Failed to create timetable. Please check your connection.');
       console.error('Error creating timetable:', err);
+      if (err.message.includes('JSON')) {
+        toast.error('Server returned invalid response. Please check the API endpoint.');
+      } else {
+        toast.error('Failed to create timetable. Please check your connection.');
+      }
     }
   };
 
@@ -145,6 +185,10 @@ function ManageTime() {
         body: JSON.stringify({ isActive: !currentStatus }),
       });
       
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       if (response.ok) {
         // Update the local state
         setTimetables(timetables.map(timetable => 
@@ -152,11 +196,12 @@ function ManageTime() {
         ));
         toast.success(`Timetable ${!currentStatus ? 'activated' : 'deactivated'} successfully!`);
       } else {
-        toast.error('Failed to update timetable');
+        const data = await response.json();
+        toast.error(data.message || 'Failed to update timetable');
       }
     } catch (err) {
-      toast.error('Failed to update timetable');
       console.error('Error updating timetable:', err);
+      toast.error('Failed to update timetable');
     }
   };
 
@@ -169,24 +214,29 @@ function ManageTime() {
         method: 'DELETE',
       });
       
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       if (response.ok) {
         setTimetables(timetables.filter(timetable => timetable._id !== id));
         toast.success('Timetable deleted successfully!');
       } else {
-        toast.error('Failed to delete timetable');
+        const data = await response.json();
+        toast.error(data.message || 'Failed to delete timetable');
       }
     } catch (err) {
-      toast.error('Failed to delete timetable');
       console.error('Error deleting timetable:', err);
+      toast.error('Failed to delete timetable');
     }
   };
 
   // Filter timetables based on search query and status filter
   const filteredTimetables = timetables.filter(timetable => {
     const matchesSearch = 
-      timetable.timeTableID.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (timetable.timeTableID && timetable.timeTableID.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (timetable.collectorID && timetable.collectorID.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      timetable.collectionLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (timetable.collectionLocation && timetable.collectionLocation.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (timetable.routeName && timetable.routeName.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesStatus = statusFilter === 'all' || 
@@ -392,7 +442,7 @@ function ManageTime() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-900">{timetable.crewMembers.length}</span>
+                        <span className="text-gray-900">{timetable.crewMembers?.length || 0}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
