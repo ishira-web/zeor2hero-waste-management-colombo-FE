@@ -7,6 +7,7 @@ import ManageUsers from '../Pages/ManageUsers'
 import ManageCollectors from '../Pages/ManageCollectors'
 import ManageRoutes from '../Pages/ManageRoutes'
 import ManageTime from '../Pages/ManageTime'
+import ManageRequest from '../Pages/ManageRequest'
 
 function AdminRoutes() {
   return (
@@ -19,6 +20,7 @@ function AdminRoutes() {
         <Route path="collectors" element={<ManageCollectors />} />
         <Route path="routesCl" element={<ManageRoutes/>} />
         <Route path="teams" element={<ManageTime/>} />
+        <Route path="request" element={<ManageRequest/>} />
         <Route path="*" element={<h1>Not found</h1>} />
         </Route>
     </Routes>

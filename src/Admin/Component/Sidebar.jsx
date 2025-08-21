@@ -9,6 +9,7 @@ function Sidebar() {
     { name: 'Manage Collectors', path: 'collectors' },
     { name: 'Manage Routes', path: 'routesCl' },
     {name :  'Manage Teams', path: 'teams'},
+    { name: 'Manage Request', path: 'request' }
   ]
   return (
     <div className='w-64 h-screen bg-[var(--color-primary)] text-black font-poppins fixed left-0 top-0 shadow-lg flex flex-col py-6 px-4'>
