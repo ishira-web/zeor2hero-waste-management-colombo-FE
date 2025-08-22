@@ -577,35 +577,6 @@ export default function Profile() {
                           </span>
                         </div>
                       </div>
-
-                      {/* Crew */}
-                      <div className="mt-3">
-                        <div className="flex items-center gap-2 text-sm font-medium text-gray-800">
-                          <Users className="h-4 w-4" />
-                          Crew Members
-                        </div>
-                        {tt.crewMembers.length === 0 ? (
-                          <p className="text-xs text-gray-600 mt-1">—</p>
-                        ) : (
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {tt.crewMembers.map((m, idx) => {
-                              // accept string or object {name: '', id: ''} gracefully
-                              const label =
-                                typeof m === "string"
-                                  ? m
-                                  : m?.name || m?.fullName || m?.email || "Member";
-                              return (
-                                <span
-                                  key={String(m?.id || m?._id || m || idx)}
-                                  className="inline-flex items-center rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700"
-                                >
-                                  {label}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
                     </li>
                   ))}
                 </ul>
