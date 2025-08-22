@@ -6,6 +6,7 @@ import AdminRoutes from './Admin/Routes/AdminRoutes'
 import LoginPage from './Client/Pages/LoginPage'
 import { ToastContainer } from 'react-toastify'
 import CollectorProfile from './Collector/Pages/CollectorProfile.jsx'
+import Register from './Client/Pages/Register.jsx'
 
 // Protected Route component
 function ProtectedRoute({ children, requiredRole }) {
@@ -41,6 +42,7 @@ function AppRoutes() {
          <CollectorProfile/>
         </ProtectedRoute>
       } />
+      <Route path='/register' element={<Register/>}/>
       <Route path='/dweller-dashboard' element={
         <ProtectedRoute requiredRole="dweller">
           <div>Dweller Dashboard</div>
