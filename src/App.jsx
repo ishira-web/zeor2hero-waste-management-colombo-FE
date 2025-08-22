@@ -27,30 +27,28 @@ function ProtectedRoute({ children, requiredRole }) {
 function AppRoutes() {
   return (
     <>
-    
-     <ToastContainer/>
-    <Routes>
-      <Route path='/login' element={<LoginPage />} />
-      <Route path='/' element={<Home/>}/>
-      <Route path='/admin/*' element={
-        <ProtectedRoute requiredRole="admin">
-          <AdminRoutes />
-        </ProtectedRoute>
-      } />
-      <Route path='/collector-dashboard' element={
-        <ProtectedRoute requiredRole="collector">
-         <CollectorProfile/>
-        </ProtectedRoute>
-      } />
-      <Route path='/register' element={<Register/>}/>
-      <Route path='/dweller-dashboard' element={
-        <ProtectedRoute requiredRole="dweller">
-          <Profile />
-        </ProtectedRoute>
-      } />
-    </Routes>
+      <ToastContainer/>
+      <Routes>
+        <Route path='/login' element={<LoginPage />} />
+        <Route path='/' element={<Home/>}/>
+        <Route path='/admin/*' element={
+          <ProtectedRoute requiredRole="admin">
+            <AdminRoutes />
+          </ProtectedRoute>
+        } />
+        <Route path='/collector-dashboard' element={
+          <ProtectedRoute requiredRole="collector">
+            <CollectorProfile/>
+          </ProtectedRoute>
+        } />
+        <Route path='/register' element={<Register/>}/>
+        <Route path='/dweller-dashboard' element={
+          <ProtectedRoute requiredRole="dweller">
+            <Profile />
+          </ProtectedRoute>
+        } />
+      </Routes>
     </>
-   
   )
 }
 
