@@ -18,9 +18,11 @@ import {
   Users,
   ImageOff,
   Shield,
+  Send,
 } from "lucide-react";
 
 const API_BASE = "http://localhost:3000/api";
+const REQUESTS_API = `${API_BASE}/requests`; // <--- adjust to your backend (e.g. /request/create)
 
 const dayOrder = {
   Monday: 1,
@@ -103,6 +105,22 @@ export default function Profile() {
   const [timetables, setTimetables] = useState([]);
   const [loadingTT, setLoadingTT] = useState(true);
 
+  // Request modal state
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestSubmitting, setRequestSubmitting] = useState(false);
+  const [requestError, setRequestError] = useState("");
+  const [requestSuccess, setRequestSuccess] = useState("");
+
+  const [requestForm, setRequestForm] = useState({
+    collectorID: "",
+    userName: "",
+    dwellerID: "",
+    dwellerAddress: "",
+    requestType: "organic",
+    requestTime: "",
+    additionalNotes: "",
+  });
+
   // IDs & token
   const userId = useMemo(() => {
     return (
@@ -142,7 +160,6 @@ export default function Profile() {
 
         const idForApi = userId ?? dwellerId;
         if (!idForApi) {
-          // No ID for API; fallback to whatever we have
           const fallback = currentUser?.user || currentUser;
           setProfile(fallback);
           setAvatarUrl(fallback?.avatarUrl || fallback?.profilePicture || "");
@@ -264,6 +281,14 @@ export default function Profile() {
     currentUser?.user?.phoneNumber ||
     "";
 
+  const dwellerAddress =
+    profile?.address ||
+    profile?.location ||
+    profile?.addressLine1 ||
+    currentUser?.address ||
+    currentUser?.location ||
+    "";
+
   const initials = getInitials(fullName);
 
   // ----- Avatar handlers -----
@@ -296,13 +321,9 @@ export default function Profile() {
       const formData = new FormData();
       formData.append("avatar", avatarFile);
 
-      // Adjust endpoint to your backend (e.g., /user/:id/avatar or /user/:id/profile-picture)
       const res = await fetch(`${API_BASE}/user/${idForApi}/avatar`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // Do NOT set Content-Type for multipart/form-data; browser will set boundary
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
@@ -318,12 +339,8 @@ export default function Profile() {
       }
 
       const data = await res.json();
-      // Expect backend to return { avatarUrl: '...' } or updated user
       const newUrl = data?.avatarUrl || data?.user?.avatarUrl || "";
       if (newUrl) setAvatarUrl(newUrl);
-
-      // Optionally refresh profile
-      // (Keeping it simple; you could re-fetch /user/:id here)
       setAvatarFile(null);
     } catch (e) {
       setError("Something went wrong while uploading the image.");
@@ -333,7 +350,6 @@ export default function Profile() {
   }
 
   function handleCancelAvatar() {
-    // Reset preview to original from profile/currentUser
     const fallback =
       profile?.avatarUrl ||
       profile?.profilePicture ||
@@ -354,6 +370,101 @@ export default function Profile() {
       return String(a.collectionTime).localeCompare(String(b.collectionTime));
     });
   }, [timetables]);
+
+  // ----- Request Service modal helpers -----
+  function openRequestModal(fromTT = null) {
+    const defaultCollector =
+      fromTT?.collectorID ||
+      normalizedSortedTT?.[0]?.collectorID ||
+      "";
+
+    setRequestError("");
+    setRequestSuccess("");
+    setRequestForm({
+      collectorID: defaultCollector,
+      userName: fullName || "",
+      dwellerID: dwellerId || "",
+      dwellerAddress: dwellerAddress || "",
+      requestType: "organic",
+      requestTime: "", // user picks
+      additionalNotes: "",
+    });
+    setShowRequestModal(true);
+  }
+
+  function closeRequestModal() {
+    setShowRequestModal(false);
+  }
+
+  function onRequestChange(e) {
+    const { name, value } = e.target;
+    setRequestForm((p) => ({ ...p, [name]: value }));
+  }
+
+  async function submitRequest(e) {
+    e.preventDefault();
+    setRequestError("");
+    setRequestSuccess("");
+
+    const payload = {
+      collectorID: requestForm.collectorID,
+      userName: requestForm.userName,
+      dwellerID: requestForm.dwellerID,
+      dwellerAddress: requestForm.dwellerAddress,
+      requestType: requestForm.requestType,
+      requestTime: requestForm.requestTime,
+      additionalNotes: requestForm.additionalNotes,
+    };
+
+    // basic validation
+    if (
+      !payload.collectorID ||
+      !payload.userName ||
+      !payload.dwellerID ||
+      !payload.dwellerAddress ||
+      !payload.requestType ||
+      !payload.requestTime
+    ) {
+      setRequestError("Please complete all required fields.");
+      return;
+    }
+
+    try {
+      setRequestSubmitting(true);
+      const res = await fetch(REQUESTS_API, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.status === 401) {
+        setRequestError("Your session has expired. Please log in again.");
+        logout();
+        return;
+      }
+
+      if (!res.ok) {
+        const errJs = await res.json().catch(() => ({}));
+        setRequestError(
+          errJs?.message || "Failed to create request. Please try again."
+        );
+        return;
+      }
+
+      setRequestSuccess("Request sent successfully.");
+      // optional: close after short delay
+      setTimeout(() => {
+        setShowRequestModal(false);
+      }, 800);
+    } catch (err) {
+      setRequestError("Network error. Please try again.");
+    } finally {
+      setRequestSubmitting(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -484,6 +595,11 @@ export default function Profile() {
                     label="Dweller ID"
                     value={dwellerId || "—"}
                   />
+                  <InfoRow
+                    icon={<MapPin className="h-4 w-4 text-gray-500" />}
+                    label="Address"
+                    value={dwellerAddress || "—"}
+                  />
                 </div>
               )}
             </div>
@@ -509,13 +625,22 @@ export default function Profile() {
                 <h2 className="text-lg font-semibold text-gray-800">
                   Timetables
                 </h2>
-                <button
-                  onClick={() => fetchTimetables()}
-                  className="inline-flex items-center gap-2 rounded-xl border border-gray-300 px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Refresh
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openRequestModal(null)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+                  >
+                    <Send className="h-4 w-4" />
+                    Request Service
+                  </button>
+                  <button
+                    onClick={() => fetchTimetables()}
+                    className="inline-flex items-center gap-2 rounded-xl border border-gray-300 px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Refresh
+                  </button>
+                </div>
               </div>
 
               {loadingTT ? (
@@ -577,6 +702,17 @@ export default function Profile() {
                           </span>
                         </div>
                       </div>
+
+                      {/* Request from this collector */}
+                      <div className="mt-4">
+                        <button
+                          onClick={() => openRequestModal(tt)}
+                          className="inline-flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                          Request from this Collector
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -585,11 +721,145 @@ export default function Profile() {
           </section>
         </div>
       </main>
+
+      {/* ------------ Request Service Modal ------------ */}
+      {showRequestModal && (
+        <div className="fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={closeRequestModal}
+          />
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
+              <div className="flex items-center justify-between border-b px-5 py-4">
+                <h3 className="text-lg font-semibold">Request Service</h3>
+                <button
+                  onClick={closeRequestModal}
+                  className="rounded-lg p-1 hover:bg-gray-100"
+                >
+                  <X className="h-5 w-5 text-gray-700" />
+                </button>
+              </div>
+
+              <form onSubmit={submitRequest} className="px-5 py-4 space-y-4">
+                {/* Autofilled, readonly */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field
+                    label="Collector ID"
+                    name="collectorID"
+                    value={requestForm.collectorID}
+                    readOnly
+                  />
+                  <Field
+                    label="User Name"
+                    name="userName"
+                    value={requestForm.userName}
+                    readOnly
+                  />
+                  <Field
+                    label="Dweller ID"
+                    name="dwellerID"
+                    value={requestForm.dwellerID}
+                    readOnly
+                  />
+                  <Field
+                    label="Dweller Address"
+                    name="dwellerAddress"
+                    value={requestForm.dwellerAddress}
+                    readOnly
+                  />
+                </div>
+
+                {/* Select + datetime + notes */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Request Type
+                    </label>
+                    <select
+                      name="requestType"
+                      value={requestForm.requestType}
+                      onChange={onRequestChange}
+                      className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-gray-900 shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                    >
+                      <option value="organic">Organic</option>
+                      <option value="inorganic">Inorganic</option>
+                      <option value="hazard">Hazard</option>
+                      <option value="plastic">Plastic</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Request Time
+                    </label>
+                    <input
+                      type="datetime-local"
+                      name="requestTime"
+                      value={requestForm.requestTime}
+                      onChange={onRequestChange}
+                      className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-gray-900 shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    Additional Notes
+                  </label>
+                  <textarea
+                    name="additionalNotes"
+                    value={requestForm.additionalNotes}
+                    onChange={onRequestChange}
+                    rows={3}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-gray-900 shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                    placeholder="Anything the crew should know?"
+                  />
+                </div>
+
+                {requestError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {requestError}
+                  </div>
+                )}
+                {requestSuccess && (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                    {requestSuccess}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={closeRequestModal}
+                    className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={requestSubmitting}
+                    className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-60"
+                  >
+                    {requestSubmitting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                    Send Request
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-/** ---------- Small UI helper ---------- */
+/** ---------- Small UI helpers ---------- */
 function InfoRow({ icon, label, value }) {
   return (
     <div className="flex items-start gap-3">
@@ -598,6 +868,25 @@ function InfoRow({ icon, label, value }) {
         <p className="text-gray-500">{label}</p>
         <p className="font-medium break-all">{value}</p>
       </div>
+    </div>
+  );
+}
+
+function Field({ label, name, value, readOnly = false }) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-gray-700">
+        {label}
+      </label>
+      <input
+        name={name}
+        value={value ?? ""}
+        onChange={() => {}}
+        readOnly={readOnly}
+        className={`w-full rounded-xl border ${
+          readOnly ? "bg-gray-100" : "bg-white"
+        } border-gray-300 px-3.5 py-2.5 text-gray-900 shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200`}
+      />
     </div>
   );
 }
