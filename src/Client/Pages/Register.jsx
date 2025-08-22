@@ -15,10 +15,13 @@ import {
   EyeOff,
   Loader2,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom"; 
 
-const API_BASE ="http://localhost:3000";
+const API_BASE = "http://localhost:3000";
 
 function Register() {
+  const navigate = useNavigate(); // ✅ hook for navigation
+
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -123,11 +126,13 @@ function Register() {
       Object.entries(formData).forEach(([k, v]) => data.append(k, v));
       if (profilePicture) data.append("profilePicture", profilePicture);
 
-      // Let axios set the multipart boundary automatically (no manual headers)
+      // Let axios set the multipart boundary automatically
       const res = await axios.post(`${API_BASE}/api/user/create`, data);
 
       toast.success(res.data?.message || "User registered successfully!");
       resetForm();
+
+      setTimeout(() => navigate("/login", { replace: true }), 1200);
     } catch (error) {
       const msg = error?.response?.data?.message || "Something went wrong.";
       toast.error(msg);
@@ -418,6 +423,7 @@ function Register() {
           </div>
         </form>
       </div>
+
     </div>
   );
 }
